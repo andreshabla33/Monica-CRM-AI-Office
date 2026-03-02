@@ -1,89 +1,97 @@
-# Monica CRM — AI Office
+# Monica CRM — AI Office (Dashboard de Observabilidad Agéntica)
 
-Visualización 2D pixel art de una oficina virtual que muestra la actividad en tiempo real de agentes de IA conversacionales conectados a WhatsApp, Instagram y otros canales.
+Interfaz de observabilidad operativa en tiempo real representada como una oficina 2D Pixel Art. Permite monitorear el estado, carga de trabajo y actividad de los agentes de IA conversacionales conectados a canales de mensajería (WhatsApp, Instagram, Web) sin necesidad de acceso a bases de datos crudas o logs de backend. El sistema democratiza el monitoreo técnico para stakeholders operativos y directivos.
 
 ![Monica CRM AI Office](https://img.shields.io/badge/React-Canvas_2D-blue) ![Supabase](https://img.shields.io/badge/Supabase-Edge_Functions-green) ![Vite](https://img.shields.io/badge/Vite-v7-purple)
 
-## Features
+## Problema que resuelve
 
-- **Oficina 2D Pixel Art** — Canvas HTML5 con salas (Meeting, Private Office, Kitchen, Lounge, Work Area)
-- **Datos en tiempo real** — Polling cada 5s desde Supabase Edge Function
-- **7+ estados enriquecidos** — `responding`, `scheduling`, `qualifying`, `waiting`, `overloaded`, `working`, `idle`
-- **Speech bubbles** — Burbujas flotantes con la acción actual del agente
-- **Heat indicators** — Aura pulsante por carga de trabajo (verde → amarillo → naranja → rojo)
-- **Sala "Sin Interacción"** — Agentes sin datos reales aparecen greyed-out y estáticos
-- **Mini-dashboard KPI** — Overlay en canvas con msgs/h, convos abiertas, agentes activos
-- **Activity Feed** — Panel lateral con log de acciones en tiempo real
-- **Tooltips detallados** — Hover sobre agente → métricas completas (msgs, convos, canal, LLM)
-- **Focus Mode** — Click en agente → modal con métricas detalladas y barra de carga
-- **Sonidos retro 8-bit** — Web Audio API genera sonidos al cambiar estado (toggle on/off)
-- **Fallback demo** — Si la API no responde, muestra datos simulados
+Los agentes de IA a menudo operan como una "caja negra". Sin esta herramienta, determinar si un agente está saturado, inactivo, o procesando información requería inspeccionar tablas crudas en Supabase (`wp_mensajes`, `wp_conversaciones`, `wp_agentes`). Esto era inaccesible para la dirección y extremadamente lento para los operadores en vivo.
 
-## Tech Stack
-
-- **Frontend**: React 19 + Vite 7 + TailwindCSS 4
-- **Canvas**: HTML5 Canvas 2D (pixel art, 1100×700)
-- **Backend**: Supabase Edge Functions (Deno)
-- **Base de datos**: PostgreSQL (Supabase)
-- **Audio**: Web Audio API (sin archivos externos)
-
-## Arquitectura
+## Arquitectura implementada
 
 ```
 Supabase PostgreSQL
-  ├── wp_agentes (agentes de IA)
-  ├── wp_conversaciones (conversaciones por canal)
-  └── wp_mensajes (mensajes con uso_herramientas)
-        │
-        ▼
-Edge Function: agent-office-status
-  → Retorna: { agents: [...], kpis: {...} }
-  → Estados: responding | scheduling | qualifying | waiting | overloaded | working | idle
-        │
-        ▼
-React App (Canvas 2D)
-  ├── PixelOffice.jsx — Canvas principal con oficina, agentes, bubbles, heat, KPIs
-  ├── ActivityFeed.jsx — Panel lateral con dashboard + log de acciones
-  ├── AgentDetail.jsx — Modal focus mode con métricas detalladas
-  ├── StatusBar.jsx — Barra inferior con badges de agentes
-  ├── useAgentStates.js — Hook de polling API + fallback mock
-  └── useSounds.js — Sonidos retro con Web Audio API
+┌────────────────────────────────────────────────────────┐
+│  wp_agentes          wp_conversaciones  wp_mensajes    │
+│  ├─ id               ├─ agente_id       ├─ conversacion│
+│  ├─ nombre           ├─ estado          ├─ uso_herram. │
+│  ├─ estado_actual    ├─ canal           └─ timestamp   │
+│  └─ ultima_actividad └─ mensajes_hora                  │
+└────────────────────────────────────────────────────────┘
+         │
+         ▼
+Edge Function: agent-office-status (Deno)
+         │
+         ├─► Agrega: conversaciones activas por agente
+         ├─► Calcula: msgs/hora y KPIs globales
+         ├─► Determina: estado computado enriquecido
+         │   ├─ msgs/h > límite → "overloaded"
+         │   ├─ uso_herramientas activo → "responding", "scheduling"
+         │   └─ sin actividad > 5min → "idle"
+         │
+         └─► Retorna: { agents: [...], kpis: {...} }
+ 
+React App (polling 5s)
+┌──────────────────────────────────────────────────────────┐
+│  useAgentStates.js                                        │
+│  ├─ fetch() → Edge Function cada 5s                       │
+│  └─ Fallback mock si API no responde                      │
+│                                                           │
+│  PixelOffice.jsx (HTML5 Canvas 1100×700)                  │
+│  ├─ Salas: Meeting, Private Office, Kitchen, Lounge       │
+│  ├─ Avatares: sprites animados y posicionamiento dinámico │
+│  ├─ Speech bubbles: acción actual del agente              │
+│  ├─ Heat indicators: aura pulsante por carga de trabajo   │
+│  └─ KPI overlay: msgs/h, convos abiertas, agentes activos │
+│                                                           │
+│  ActivityFeed.jsx                                         │
+│  └─ Log de eventos en tiempo real (persistente en client) │
+│                                                           │
+│  AgentDetail.jsx                                          │
+│  └─ Modal focus: métricas completas e historial por agente│
+└──────────────────────────────────────────────────────────┘
 ```
 
-## Setup
+### Decisión arquitectónica — Polling vs. WebSocket
+
+Se eligió **polling de 5s** (en lugar de Supabase Realtime/WebSockets) para evitar mantener conexiones activas permanentemente en un dashboard diseñado para correr desatendido en pantallas secundarias 24/7. Los estados macro de los agentes cambian en escala de segundos o minutos, por lo que 5s es un intervalo técnicamente justificado que balancea inmediatez y costo de infraestructura.
+
+## Features clave y Estado Actual
+
+- **Auto-discovery de agentes**: Nuevos agentes añadidos a la BD se muestran automáticamente en el canvas en la zona correspondiente (activos en "Work Area", inactivos en "Sala OFF").
+- **Mapeo de estados preciso**: La Edge Function deduce el estado real (`working`, `waiting`, `responding`, `scheduling`) basado en metadatos de los últimos mensajes y herramientas usadas.
+- **Heat indicators**: Aura direccional (verde → amarillo → naranja → rojo) basada en el volumen de conversaciones activas por agente para detectar saturación de un vistazo.
+- **Performance extrema**: Motor de renderizado Pixel Art custom en Canvas 2D (`< 25KB`). Ultra ligero, no degrada el performance del navegador incluso tras días de ejecución.
+- **Audio de notificaciones retro**: Web Audio API genera tonos 8-bit sintetizados dinámicamente al cambiar de estado (no requiere cargar MP3s). Optimizado para no disparar ráfagas al cambiar de pestañas.
+- **Stale Data Indicator**: Alerta visual roja si la API falla o hace timeout por >15s, previniendo falsas sensaciones de seguridad si se activa el fallback a datos mockeados locales.
+- **Activity Log persistente**: El log lateral guarda el historial de acciones en `localStorage` para sobrevivir recargas de página.
+
+## Limitaciones Conocidas (Próximos pasos)
+
+1. **Read-Only (Falta control activo)**: El dashboard es estrictamente de observabilidad. Si un agente está `overloaded` o atascado, el operador no puede pausarlo o reiniciarlo desde esta interfaz; debe usar el orquestador principal.
+2. **Database load con escalabilidad**: Con 25+ agentes, el polling de 5s genera ~12 llamadas por minuto por cada cliente conectado. A gran escala, esto requerirá implementar Redis o caching nativo en la capa de la Edge Function para proteger PostgreSQL.
+
+## Setup & Build
 
 ```bash
+# Instalación
 npm install
+
+# Desarrollo
 npm run dev
-```
 
-## Env Variables
-
-La app se conecta directamente a la Edge Function pública de Supabase. No requiere variables de entorno para el frontend.
-
-## Build
-
-```bash
+# Build optimizado
 npm run build
 npm run preview
 ```
 
-## Estructura de archivos
+## Tech Stack
 
-```
-src/
-├── App.jsx                    # Layout principal + integración
-├── components/
-│   ├── PixelOffice.jsx        # Canvas 2D (24KB) — oficina completa
-│   ├── ActivityFeed.jsx       # Panel lateral KPIs + log
-│   ├── AgentDetail.jsx        # Modal focus mode
-│   └── StatusBar.jsx          # Barra inferior
-├── data/
-│   └── agents.js              # Posiciones, colores, mapeo API
-└── hooks/
-    ├── useAgentStates.js      # Polling + estado + KPIs
-    └── useSounds.js           # Sonidos 8-bit Web Audio
-```
+- **Frontend**: React 19 + Vite 7 + TailwindCSS 4
+- **Canvas**: HTML5 Canvas 2D sin librerías externas de renderizado
+- **Backend**: Supabase Edge Functions (Deno)
+- **Audio**: Native Web Audio API
 
 ## License
 
