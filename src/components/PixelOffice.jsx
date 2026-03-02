@@ -198,69 +198,56 @@ function drawRug(ctx, x, y, w, h, color = '#2a1a3e') {
 
 // ── rooms & furniture layout ───────────────────────────────
 function drawOfficeLayout(ctx) {
-  // ── Meeting Room (top-left) ──
+  // BRANDING
+  ctx.fillStyle = 'rgba(78, 205, 196, 0.05)';
+  ctx.font = 'bold 120px monospace';
+  ctx.fillText('MONICA CRM', 180, 500);
+
+  // ── Zone 1: Respondiendo Mensajes (top-left) ──
   drawWall(ctx, 40, 30, 240, 170);
-  drawDoor(ctx, 220, 198, false);
+  drawDoor(ctx, 160, 198, false);
   drawTable(ctx, 90, 80, 100, 50);
   drawChair(ctx, 100, 65);
   drawChair(ctx, 140, 65);
   drawChair(ctx, 100, 130);
   drawChair(ctx, 140, 130);
   drawWhiteboard(ctx, 55, 40);
-  drawPlant(ctx, 240, 40);
+  
+  ctx.fillStyle = '#2ecc71';
+  ctx.font = 'bold 10px monospace';
+  ctx.fillText('RESPONDIENDO MENSAJES', 90, 180);
 
-  ctx.fillStyle = '#4a4a6a';
-  ctx.font = '9px monospace';
-  ctx.fillText('MEETING ROOM', 100, 180);
-
-  // ── Private Office (top-center) ──
-  drawWall(ctx, 300, 30, 200, 170);
-  drawDoor(ctx, 380, 198, false);
+  // ── Zone 2: Agendando Citas (top-center) ──
+  drawWall(ctx, 300, 30, 240, 170);
+  drawDoor(ctx, 420, 198, false);
   drawDesk(ctx, 340, 60);
   drawChair(ctx, 360, 100);
-  drawBookshelf(ctx, 440, 40);
-  drawPlant(ctx, 310, 155);
-  drawClock(ctx, 380, 38);
+  drawDesk(ctx, 440, 60);
+  drawChair(ctx, 460, 100);
+  drawClock(ctx, 410, 38);
 
-  ctx.fillStyle = '#4a4a6a';
-  ctx.font = '9px monospace';
-  ctx.fillText('PRIVATE OFFICE', 345, 180);
+  ctx.fillStyle = '#3498db';
+  ctx.font = 'bold 10px monospace';
+  ctx.fillText('AGENDANDO CITAS', 365, 180);
 
-  // ── Kitchen (top-right-ish) ──
-  drawWall(ctx, 520, 30, 200, 170);
-  drawDoor(ctx, 570, 198, false);
-  drawCoffeeMachine(ctx, 540, 50);
-  drawFridge(ctx, 670, 45);
-  drawTable(ctx, 580, 90, 70, 44);
-  drawChair(ctx, 590, 136);
-  drawChair(ctx, 630, 136);
-  drawWaterCooler(ctx, 540, 110);
+  // ── Zone 3: Analizando (top-right-ish) ──
+  drawWall(ctx, 560, 30, 200, 170);
+  drawDoor(ctx, 660, 198, false);
+  drawBookshelf(ctx, 580, 40);
+  drawCouch(ctx, 640, 80, true);
+  
+  ctx.fillStyle = '#9b59b6';
+  ctx.font = 'bold 10px monospace';
+  ctx.fillText('ANÁLISIS E IA', 620, 180);
 
-  ctx.fillStyle = '#4a4a6a';
-  ctx.font = '9px monospace';
-  ctx.fillText('KITCHEN', 595, 180);
+  // ── Lounge (far-right) ──
+  drawWall(ctx, 780, 30, 180, 170);
+  drawDoor(ctx, 780, 130, true);
+  drawRug(ctx, 800, 60, 140, 100);
+  drawWaterCooler(ctx, 920, 50);
 
-  // ── Lounge (top-right) ──
-  drawWall(ctx, 740, 30, 220, 170);
-  drawDoor(ctx, 740, 130, true);
-  drawRug(ctx, 780, 60, 150, 100);
-  drawCouch(ctx, 790, 65, true);
-  drawCouch(ctx, 790, 120, true);
-  drawTable(ctx, 830, 96, 40, 22);
-  drawBookshelf(ctx, 910, 40);
-  drawPlant(ctx, 760, 40);
-
-  ctx.fillStyle = '#4a4a6a';
-  ctx.font = '9px monospace';
-  ctx.fillText('LOUNGE', 830, 180);
-
-  // ── Corridor decorations ──
-  drawPlant(ctx, 50, 230);
-  drawPlant(ctx, 700, 230);
-  drawWaterCooler(ctx, 450, 240);
-
-  // ── Work Area (expanded — 4 columns × 3 rows) ──
-  const deskStartX = 100;
+  // ── Open Work Area (desks) ──
+  const deskStartX = 120;
   const deskStartY = 290;
   const colSpacing = 130;
   const rowSpacing = 110;
@@ -271,19 +258,11 @@ function drawOfficeLayout(ctx) {
       const dy = deskStartY + row * rowSpacing;
       drawDesk(ctx, dx, dy);
       drawChair(ctx, dx + 22, dy + 36);
+      if ((row + col) % 3 === 0) drawPlant(ctx, dx - 16, dy + 10);
     }
   }
 
-  // Cubicle dividers
-  ctx.fillStyle = '#1e2a3a';
-  for (let col = 0; col <= 4; col++) {
-    ctx.fillRect(deskStartX - 20 + col * colSpacing, deskStartY - 20, 4, rowSpacing * 3 + 30);
-  }
-  for (let row = 0; row <= 3; row++) {
-    ctx.fillRect(deskStartX - 20, deskStartY - 20 + row * rowSpacing, colSpacing * 4, 4);
-  }
-
-  ctx.fillStyle = '#4a4a6a';
+  // ── OFF Room (right side) ──
   ctx.font = '10px monospace';
   ctx.fillText('WORK AREA', 260, deskStartY + rowSpacing * 3 + 20);
 
@@ -685,26 +664,83 @@ export default function PixelOffice({ agents, agentStates, extras, kpis, onAgent
         }
 
         const state = states[ag.id] || 'idle';
-
-        if (state === 'idle') {
-          ag.idleTimer++;
-          if (ag.idleTimer > 180 || (ag.x === ag.targetX && ag.y === ag.targetY)) {
-            if (ag.x === ag.targetX && ag.y === ag.targetY) {
-              const t = pickIdleTarget();
-              ag.targetX = t.x;
-              ag.targetY = t.y;
+        
+        // Target assignment based on state
+        if (state === 'idle' || state === 'waiting') {
+          // Go back to desk
+          ag.targetX = ag.deskX;
+          ag.targetY = ag.deskY;
+        } else {
+          // Working, responding, scheduling, etc. -> Go to action zone
+          // If already at a zone, maybe wander slightly inside it, otherwise pick a spot
+          if (!ag.currentZone || ag.idleTimer > 150) {
+            import('../data/agents').then(module => {
+              const { ACTION_ZONES } = module;
+              let zone = ACTION_ZONES.responding; // default
+              if (state === 'scheduling') zone = ACTION_ZONES.scheduling;
+              if (state === 'thinking' || state === 'qualifying') zone = ACTION_ZONES.analyzing;
+              
+              // Pick random point inside zone
+              ag.targetX = zone.x + 20 + Math.random() * (zone.w - 40);
+              ag.targetY = zone.y + 30 + Math.random() * (zone.h - 60);
+              ag.currentZone = zone;
               ag.idleTimer = 0;
-            }
+            });
+          } else {
+            ag.idleTimer++;
           }
         }
 
-        const result = moveTowards(
-          { x: ag.x, y: ag.y },
-          { x: ag.targetX, y: ag.targetY },
-          SPEED
-        );
-        ag.x = result.x;
-        ag.y = result.y;
+        // Avoidance: push away from other agents if too close
+        let dx = ag.targetX - ag.x;
+        let dy = ag.targetY - ag.y;
+        
+        // Basic repulsion from other active agents
+        agentList.forEach(other => {
+          if (other.id !== ag.id && other.hasRealData) {
+            const dist = Math.hypot(other.x - ag.x, other.y - ag.y);
+            if (dist < 20 && dist > 0) {
+              dx -= (other.x - ag.x) * 0.5;
+              dy -= (other.y - ag.y) * 0.5;
+            }
+          }
+        });
+
+        const distToTarget = Math.hypot(dx, dy);
+        if (distToTarget > SPEED) {
+          const moveX = (dx / distToTarget) * SPEED;
+          const moveY = (dy / distToTarget) * SPEED;
+          
+          // Basic corridor pathfinding (avoid walls)
+          // If trying to cross y=210 (corridor) from y>220 to y<200 or vice versa
+          // force them to go through the doors
+          let nextX = ag.x + moveX;
+          let nextY = ag.y + moveY;
+          
+          if (ag.y > 210 && nextY < 210) {
+            // Going UP. Force to a door X
+            const doors = [170, 430, 670];
+            const nearestDoor = doors.reduce((a, b) => Math.abs(b - ag.x) < Math.abs(a - ag.x) ? b : a);
+            if (Math.abs(ag.x - nearestDoor) > 20) {
+              nextX = ag.x + Math.sign(nearestDoor - ag.x) * SPEED;
+              nextY = ag.y; // don't move up yet
+            }
+          } else if (ag.y < 210 && nextY > 210) {
+            // Going DOWN. Force to a door X
+            const doors = [170, 430, 670];
+            const nearestDoor = doors.reduce((a, b) => Math.abs(b - ag.x) < Math.abs(a - ag.x) ? b : a);
+            if (Math.abs(ag.x - nearestDoor) > 20) {
+              nextX = ag.x + Math.sign(nearestDoor - ag.x) * SPEED;
+              nextY = ag.y; // don't move down yet
+            }
+          }
+
+          ag.x = nextX;
+          ag.y = nextY;
+        } else {
+          ag.x = ag.targetX;
+          ag.y = ag.targetY;
+        }
       });
 
       // Draw

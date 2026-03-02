@@ -82,12 +82,11 @@ export function getFallbackAgents() {
   });
 }
 
-export const COMMON_ZONES = [
-  { x: 50,  y: 40,  w: 220, h: 150, label: 'meeting' },
-  { x: 310, y: 40,  w: 180, h: 150, label: 'office' },
-  { x: 530, y: 40,  w: 180, h: 150, label: 'kitchen' },
-  { x: 100, y: 210, w: 560, h: 60,  label: 'corridor' },
-];
+export const ACTION_ZONES = {
+  responding: { x: 40,  y: 40, w: 260, h: 150, label: 'RESPONDIENDO MENSAJES', color: '#2ecc7122', borderColor: '#2ecc7155' },
+  scheduling: { x: 320, y: 40, w: 260, h: 150, label: 'AGENDANDO CITAS', color: '#3498db22', borderColor: '#3498db55' },
+  analyzing:  { x: 600, y: 40, w: 260, h: 150, label: 'ANÁLISIS Y ESTRATEGIA', color: '#9b59b622', borderColor: '#9b59b655' },
+};
 
 // Iconos de canal para dibujar sobre agente
 export const CANAL_ICONS = {
