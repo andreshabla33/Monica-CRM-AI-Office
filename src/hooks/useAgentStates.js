@@ -66,13 +66,30 @@ function generateLogEntry(agents, states, extras) {
   };
 }
 
+// Helper to manage localStorage logs
+const LOG_KEY = 'monica_office_logs';
+function getPersistedLogs() {
+  try {
+    const saved = localStorage.getItem(LOG_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+}
+function persistLogs(logs) {
+  try {
+    localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 50)));
+  } catch {}
+}
+
 export function useAgentStates(pollInterval = 5000) {
   const [agents, setAgents] = useState(() => getFallbackAgents());
   const [states, setStates] = useState(() => generateMockStates(getFallbackAgents()));
   const [extras, setExtras] = useState(() => generateMockExtras(getFallbackAgents()));
   const [kpis, setKpis] = useState(() => generateMockKpis(getFallbackAgents(), {}));
-  const [activityLog, setActivityLog] = useState([]);
+  const [activityLog, setActivityLog] = useState(getPersistedLogs);
   const [apiAvailable, setApiAvailable] = useState(false);
+  const [lastFetch, setLastFetch] = useState(Date.now());
   const apiAvailableRef = useRef(false);
   const prevStatesRef = useRef({});
 
@@ -129,7 +146,11 @@ export function useAgentStates(pollInterval = 5000) {
         });
 
         if (logEntries.length > 0) {
-          setActivityLog(prev => [...logEntries, ...prev].slice(0, 50));
+          setActivityLog(prevLog => {
+            const nextLog = [...logEntries, ...prevLog].slice(0, 50);
+            persistLogs(nextLog);
+            return nextLog;
+          });
         }
 
         prevStatesRef.current = newStates;
@@ -138,8 +159,11 @@ export function useAgentStates(pollInterval = 5000) {
         if (kpiData) setKpis(kpiData);
         apiAvailableRef.current = true;
         setApiAvailable(true);
+        setLastFetch(Date.now());
       }
     } catch {
+      // Don't override with mock data if we're just experiencing a temporary network blip
+      // Let the stale data indicator handle it.
       if (!apiAvailableRef.current) {
         const fb = getFallbackAgents();
         const mockStates = generateMockStates(fb);
@@ -150,7 +174,13 @@ export function useAgentStates(pollInterval = 5000) {
         setKpis(generateMockKpis(fb, mockStates));
         // Generate mock log entry
         const entry = generateLogEntry(fb, mockStates, mockExtras);
-        if (entry) setActivityLog(prev => [entry, ...prev].slice(0, 50));
+        if (entry) {
+           setActivityLog(prevLog => {
+             const nextLog = [entry, ...prevLog].slice(0, 50);
+             persistLogs(nextLog);
+             return nextLog;
+           });
+        }
       }
     }
   }, []);
@@ -161,5 +191,8 @@ export function useAgentStates(pollInterval = 5000) {
     return () => clearInterval(id);
   }, [fetchStates, pollInterval]);
 
-  return { agents, states, extras, kpis, activityLog, apiAvailable };
+  // Check if data is stale (> 15 seconds without a successful fetch)
+  const isStale = apiAvailable && (Date.now() - lastFetch > 15000);
+
+  return { agents, states, extras, kpis, activityLog, apiAvailable, isStale };
 }

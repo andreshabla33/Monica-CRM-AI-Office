@@ -7,7 +7,7 @@ import { useAgentStates } from './hooks/useAgentStates'
 import { useSounds } from './hooks/useSounds'
 
 function App() {
-  const { agents, states, extras, kpis, activityLog, apiAvailable } = useAgentStates(5000)
+  const { agents, states, extras, kpis, activityLog, apiAvailable, isStale } = useAgentStates(5000)
   const { playSound, toggleSounds, isEnabled } = useSounds()
   const [selectedAgent, setSelectedAgent] = useState(null)
   const [soundOn, setSoundOn] = useState(true)
@@ -37,7 +37,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-0">
-      <header className="py-2 text-center relative">
+      <header className="py-2 text-center relative w-full">
         <h1 className="text-lg font-mono font-bold text-[#4ecdc4] tracking-widest uppercase">
           ◈ Monica CRM — AI Office ◈
         </h1>
@@ -53,6 +53,11 @@ function App() {
             {soundOn ? '♪ ON' : '♪ OFF'}
           </button>
         </div>
+        {isStale && (
+          <div className="absolute top-2 right-4 bg-[#e74c3c22] border border-[#e74c3c] text-[#e74c3c] px-3 py-1 rounded text-[10px] font-mono font-bold animate-pulse">
+            ⚠ DATOS DESACTUALIZADOS (API CAÍDA)
+          </div>
+        )}
       </header>
       <div className="flex gap-2 items-start">
         <PixelOffice

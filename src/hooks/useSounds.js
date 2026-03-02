@@ -51,7 +51,9 @@ export function useSounds() {
   const lastPlayRef = useRef({});
 
   const playSound = useCallback((status) => {
-    if (!enabledRef.current) return;
+    // Prevent playing sounds if the tab is not visible (prevents burst when returning)
+    if (!enabledRef.current || document.hidden) return;
+    
     // Throttle: don't play same sound more than once per 3 seconds
     const now = Date.now();
     if (lastPlayRef.current[status] && now - lastPlayRef.current[status] < 3000) return;
