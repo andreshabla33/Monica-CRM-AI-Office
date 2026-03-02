@@ -13,3 +13,46 @@ body {
   min-height: 100vh;
   overflow: hidden;
 }
+
+/* Custom scrollbar for dark sci-fi look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a14;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a4e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a6a;
+}
+
+/* Specific scrollbar for terminal/console areas */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #000;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #1a1a2e;
+}
+
+/* Typing effect animation for action text */
+.typing-effect {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typing 2s steps(40, end);
+}
+
+@keyframes typing {
+  from { max-width: 0 }
+  to { max-width: 100% }
+}
